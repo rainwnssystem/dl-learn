@@ -10,6 +10,11 @@ echo "alias python='/usr/bin/python3.12'" >> ~/.bashrc
 echo "alias pip='/usr/bin/pip3.12'" >> ~/.bashrc
 . ~/.bashrc
 
-pip install numpy pandas scikit-learn torch torchvision matplotlib seaborn 
+git clone https://github.com/rainwnssystem/dl-learn
+cd dl-learn
 
 python -m venv .
+
+. bin/activate
+
+pip install numpy pandas scikit-learn torch torchvision matplotlib seaborn
