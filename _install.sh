@@ -17,4 +17,4 @@ python -m venv .
 
 . ./bin/activate
 
-pip install numpy pandas scikit-learn tensorflow torch torchvision matplotlib seaborn
+pip install numpy pandas scikit-learn tensorflow tensorflow[and-cuda] torch torchvision matplotlib seaborn
