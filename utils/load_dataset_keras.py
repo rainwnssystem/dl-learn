@@ -3,43 +3,7 @@ import struct
 import pickle
 import numpy as np
 import pandas as pd
-import torch
-from torch.utils.data import Dataset, DataLoader, random_split
-from torchvision import transforms
-from torchvision.datasets import ImageFolder
-from PIL import Image
-
-
-
-# ─────────────────────────────────────────────
-#  CustomDataset
-# ─────────────────────────────────────────────
-
-class CustomDataset(Dataset):
-    def __init__(self, images, labels=None, transform=None):
-        self.images    = images
-        self.labels    = labels
-        self.transform = transform
-
-    def __len__(self):
-        return len(self.images)
-
-    def __getitem__(self, idx):
-        
-        # if it already translated to numpy array or tensor
-        img = self.images[idx]
-        img = torch.tensor(img)
-
-        # else (path list)
-        # img = Image.open(self.images[idx]).convert('L')  # grayscale='L', RGB='RGB'
-        # img = transforms.ToTensor()(img)
-
-        if self.transform:
-            img = self.transform(img)
-
-        if self.labels is not None:
-            return img, int(self.labels[idx])
-        return img
+import tensorflow as tf
 
 
 
@@ -47,11 +11,9 @@ class CustomDataset(Dataset):
 #  1. idx-ubyte
 # ─────────────────────────────────────────────
 
-transform = transforms.Normalize((0.5,), (0.5,))
-
 with open('train-images.idx3-ubyte', 'rb') as f:
     _, n, rows, cols = struct.unpack('>IIII', f.read(16))
-    train_images = np.fromfile(f, dtype=np.uint8).reshape(n, 1, rows, cols)
+    train_images = np.fromfile(f, dtype=np.uint8).reshape(n, rows, cols, 1)  # NHWC
 
 with open('train-labels.idx1-ubyte', 'rb') as f:
     struct.unpack('>II', f.read(8))
@@ -59,7 +21,7 @@ with open('train-labels.idx1-ubyte', 'rb') as f:
 
 with open('t10k-images.idx3-ubyte', 'rb') as f:
     _, n, rows, cols = struct.unpack('>IIII', f.read(16))
-    test_images = np.fromfile(f, dtype=np.uint8).reshape(n, 1, rows, cols)
+    test_images = np.fromfile(f, dtype=np.uint8).reshape(n, rows, cols, 1)
 
 with open('t10k-labels.idx1-ubyte', 'rb') as f:
     struct.unpack('>II', f.read(8))
@@ -68,16 +30,14 @@ with open('t10k-labels.idx1-ubyte', 'rb') as f:
 train_images = train_images.astype(np.float32) / 255.0
 test_images  = test_images.astype(np.float32)  / 255.0
 
-train_dataset = CustomDataset(train_images, train_labels, transform)
-test_dataset  = CustomDataset(test_images,  test_labels,  transform)
+train_dataset = tf.data.Dataset.from_tensor_slices((train_images, train_labels))
+test_dataset  = tf.data.Dataset.from_tensor_slices((test_images,  test_labels))
 
 
 
 # ─────────────────────────────────────────────
 #  2. pkl
 # ─────────────────────────────────────────────
-
-transform = transforms.Normalize((0.5,), (0.5,))
 
 with open('train.pkl', 'rb') as f:
     train_data = pickle.load(f)
@@ -89,8 +49,8 @@ train_data['images'] = train_data['images'].astype(np.float32) / 255.0
 test_data['images']  = test_data['images'].astype(np.float32)  / 255.0
 
 # print(type(train_data)) / print(train_data.keys()) 로 구조 확인 후 아래 수정
-train_dataset = CustomDataset(train_data['images'], train_data['labels'], transform)
-test_dataset  = CustomDataset(test_data['images'],  test_data['labels'],  transform)
+train_dataset = tf.data.Dataset.from_tensor_slices((train_data['images'], train_data['labels']))
+test_dataset  = tf.data.Dataset.from_tensor_slices((test_data['images'],  test_data['labels']))
 
 
 
@@ -99,13 +59,16 @@ test_dataset  = CustomDataset(test_data['images'],  test_data['labels'],  transf
 #      data/train/<class>/, data/test/<class>/
 # ─────────────────────────────────────────────
 
-transform = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.5,), (0.5,))
-])
-
-train_dataset = ImageFolder('./data/train', transform=transform)
-test_dataset  = ImageFolder('./data/test',  transform=transform)
+train_dataset = tf.keras.utils.image_dataset_from_directory(
+    './data/train',
+    image_size=(28, 28),
+    batch_size=64
+)
+test_dataset = tf.keras.utils.image_dataset_from_directory(
+    './data/test',
+    image_size=(28, 28),
+    batch_size=64
+)
 
 
 
@@ -114,15 +77,22 @@ test_dataset  = ImageFolder('./data/test',  transform=transform)
 #      data/<class>/
 # ─────────────────────────────────────────────
 
-transform = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.5,), (0.5,))
-])
-
-dataset    = ImageFolder('./data', transform=transform)
-train_size = int(0.8 * len(dataset))
-test_size  = len(dataset) - train_size
-train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
+train_dataset = tf.keras.utils.image_dataset_from_directory(
+    './data',
+    validation_split=0.2,
+    subset='training',
+    seed=42,
+    image_size=(28, 28),
+    batch_size=64
+)
+test_dataset = tf.keras.utils.image_dataset_from_directory(
+    './data',
+    validation_split=0.2,
+    subset='validation',
+    seed=42,
+    image_size=(28, 28),
+    batch_size=64
+)
 
 
 
@@ -131,35 +101,26 @@ train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
 #      labels.csv: filename, label, split
 # ─────────────────────────────────────────────
 
-class LabelFileDataset(Dataset):
-    def __init__(self, df, img_dir, transform=None):
-        self.df        = df
-        self.img_dir   = img_dir
-        self.transform = transform
-
-    def __len__(self):
-        return len(self.df)
-
-    def __getitem__(self, idx):
-        img   = Image.open(os.path.join(self.img_dir, self.df.iloc[idx, 0])).convert('RGB')
-        label = int(self.df.iloc[idx, 1])
-        if self.transform:
-            img = self.transform(img)
-        return img, label
-
-transform = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.5,), (0.5,))
-])
+def load_image(path, label):
+    img = tf.io.read_file(path)
+    img = tf.image.decode_image(img, channels=3, expand_animations=False)
+    img = tf.image.resize(img, [28, 28])
+    img = tf.cast(img, tf.float32) / 255.0
+    return img, label
 
 df       = pd.read_csv('labels.csv')  # columns: filename, label, split
 train_df = df[df['split'] == 'train'].reset_index(drop=True)
 test_df  = df[df['split'] == 'test'].reset_index(drop=True)
 
-# split 컬럼이 없으면: train_df, test_df = train_test_split(df, test_size=0.2)
+# split 컬럼이 없으면: from sklearn.model_selection import train_test_split
 
-train_dataset = LabelFileDataset(train_df, './data', transform)
-test_dataset  = LabelFileDataset(test_df,  './data', transform)
+train_paths  = ('./data/' + train_df['filename']).tolist()
+train_labels = train_df['label'].tolist()
+test_paths   = ('./data/' + test_df['filename']).tolist()
+test_labels  = test_df['label'].tolist()
+
+train_dataset = tf.data.Dataset.from_tensor_slices((train_paths, train_labels)).map(load_image)
+test_dataset  = tf.data.Dataset.from_tensor_slices((test_paths,  test_labels)).map(load_image)
 
 
 
@@ -168,28 +129,28 @@ test_dataset  = LabelFileDataset(test_df,  './data', transform)
 #      columns: label, pixel0, pixel1, ..., pixelN
 # ─────────────────────────────────────────────
 
-transform = transforms.Normalize((0.5,), (0.5,))
-
 train_df = pd.read_csv('train.csv')
 test_df  = pd.read_csv('test.csv')
 
-# (N, 1, H, W) 로 reshape — 채널·높이·너비에 맞게 수정
+# (N, H, W, C) 로 reshape — 높이·너비·채널에 맞게 수정
 train_images = train_df.drop(columns='label').values.astype(np.float32) / 255.0
 train_labels = train_df['label'].values
-train_images = train_images.reshape(-1, 1, 28, 28)
+train_images = train_images.reshape(-1, 28, 28, 1)
 
 test_images  = test_df.drop(columns='label').values.astype(np.float32) / 255.0
 test_labels  = test_df['label'].values
-test_images  = test_images.reshape(-1, 1, 28, 28)
+test_images  = test_images.reshape(-1, 28, 28, 1)
 
-train_dataset = CustomDataset(train_images, train_labels, transform)
-test_dataset  = CustomDataset(test_images,  test_labels,  transform)
+train_dataset = tf.data.Dataset.from_tensor_slices((train_images, train_labels))
+test_dataset  = tf.data.Dataset.from_tensor_slices((test_images,  test_labels))
 
 
 
 # ─────────────────────────────────────────────
-#  DataLoader
+#  tf.data pipeline
+#  3a/3b 는 image_dataset_from_directory 에서 이미 배치 처리됨 → prefetch 만 추가
+#  나머지는 아래처럼 shuffle/batch/prefetch 모두 적용
 # ─────────────────────────────────────────────
 
-train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
-test_loader  = DataLoader(test_dataset,  batch_size=64)
+train_dataset = train_dataset.shuffle(1000).batch(64).prefetch(tf.data.AUTOTUNE)
+test_dataset  = test_dataset.batch(64).prefetch(tf.data.AUTOTUNE)
