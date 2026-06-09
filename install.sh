@@ -15,6 +15,6 @@ cd dl-learn
 
 python -m venv .
 
-. bin/activate
+. ./bin/activate
 
-pip install numpy pandas scikit-learn torch torchvision matplotlib seaborn
+pip install numpy pandas scikit-learn tensorflow torch torchvision matplotlib seaborn

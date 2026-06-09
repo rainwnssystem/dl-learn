@@ -3,4 +3,3 @@ lib*
 include
 share
 pyvenv.cfg
-datasets
