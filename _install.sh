@@ -6,15 +6,24 @@ sudo dnf install gh
 
 sudo yum install -y git python3.12 python3.12-pip
 
-echo "alias python='/usr/bin/python3.12'" >> ~/.bashrc
-echo "alias pip='/usr/bin/pip3.12'" >> ~/.bashrc
-. ~/.bashrc
-
 git clone https://github.com/rainwnssystem/dl-learn
 cd dl-learn
 
-python -m venv .
-
-. ./bin/activate
+python3.12 -m venv .venv
+. .venv/bin/activate
 
 pip install numpy pandas scikit-learn tensorflow tensorflow[and-cuda] torch torchvision matplotlib seaborn
+
+
+# Keras - GPU 인식 확인
+cat >> $VIRTUAL_ENV/bin/activate << 'EOF'
+_nvidia_base="$VIRTUAL_ENV/lib/python3.$(python -c 'import sys; print(sys.version_info.minor)')/site-packages/nvidia"
+if [ -d "$_nvidia_base" ]; then
+    for _pkg_dir in "$_nvidia_base"/*/lib; do
+        [ -d "$_pkg_dir" ] && export LD_LIBRARY_PATH="$_pkg_dir:${LD_LIBRARY_PATH:-}"
+    done
+fi
+unset _nvidia_base _pkg_dir
+EOF
+deactivate
+source .venv/bin/activate

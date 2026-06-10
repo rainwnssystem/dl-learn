@@ -1,6 +1,2 @@
-bin
-lib*
-include
-share
-pyvenv.cfg
+.venv
 datasets
