@@ -13,6 +13,7 @@ python3.12 -m venv .venv
 . .venv/bin/activate
 
 pip install numpy pandas scikit-learn tensorflow tensorflow[and-cuda] torch torchvision matplotlib seaborn
+pip uninstall nvidia-cudnn-cu12
 
 
 # Keras - GPU 인식 확인
