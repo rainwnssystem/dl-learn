@@ -25,6 +25,11 @@ Deep Learning에 대해 학습 후 실습한 자료들을 정리합니다.
     * [CNN - Pizza 분류](./cnn_keras_pizza.ipynb)
     * [RNN - MNIST 숫자 분류](./rnn_keras_mnist.ipynb)
     * [LSTM - MNIST 숫자 분류](./lstm_keras_mnist.ipynb)
+* SageMaker AI
+  * Classification
+    * [CNN - CIFAR-10 물체 분류](./cnn_sagemaker_cifar10.ipynb)
+    * [DNN - MNIST 숫자 분류](./dnn_sagemaker_mnist.ipynb)
+
 
 ### Datasets
 * [MNIST](https://www.kaggle.com/datasets/hojjatk/mnist-dataset)
