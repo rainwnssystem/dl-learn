@@ -166,10 +166,12 @@ def save_model(model, model_dir):
 
 # required for inference
 def model_fn(model_dir):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = CNN()
     model.load_state_dict(
-        torch.load(os.path.join(model_dir, "model.pth"), map_location="cpu")
+        torch.load(os.path.join(model_dir, "model.pth"), map_location=device)
     )
+    model.to(device)
     model.eval()
     return model
 
