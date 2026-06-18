@@ -1,6 +1,5 @@
 import argparse
 import json
-import logging
 import os
 import zipfile
 import struct
@@ -8,13 +7,8 @@ import struct
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torchvision import datasets, transforms
 from torch.utils.data import Dataset, DataLoader
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.metrics import confusion_matrix
-from PIL import Image
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f'Device: {device}')
@@ -155,14 +149,14 @@ def train(args):
               f"Test Acc: {test_accuracies[-1]:.2f}%")
 
     print("Finished Training.")
-    return save_model(model, args.model_dir)
+    save_model(model, args.model_dir)
 
 
 def save_model(model, model_dir):
     print("Saving the model...")
 
     path = os.path.join(model_dir, "model.pth")
-    torch.save(model.cpu().state_dict(), path)
+    torch.save(model.state_dict(), path)
 
 
 def model_fn(model_dir):
@@ -188,5 +182,6 @@ if __name__ == "__main__":
     parser.add_argument("--dataset",    type=str,   default=os.environ["SM_CHANNEL_TRAIN"])
     parser.add_argument("--model-dir",  type=str,   default=os.environ["SM_MODEL_DIR"])
 
-    compression(parser.parse_args())
-    train(parser.parse_args())
+    args = parser.parse_args()
+    compression(args)
+    train(args)
